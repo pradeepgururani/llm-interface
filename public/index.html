@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2d2d30;
+            padding: 15px 20px;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .model-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        select, input {
+            background: #3c3c3c;
+            color: #d4d4d4;
+            border: 1px solid #5a5a5a;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #007acc;
+            box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #252526;
+            border-right: 1px solid #3e3e42;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .code-input-section {
+            padding: 20px;
+            border-bottom: 1px solid #3e3e42;
+        }
+
+        .code-input-section h3 {
+            margin-bottom: 10px;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: 1px solid #5a5a5a;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #007acc;
+            box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+        }
+
+        .language-selector {
+            margin-top: 10px;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: #007acc;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.system {
+            background: #28a745;
+            color: white;
+            align-self: center;
+            max-width: 60%;
+            font-size: 13px;
+        }
+
+        .message pre {
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 8px 0;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .message code {
+            background: #3c3c3c;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .input-area {
+            padding: 20px;
+            border-top: 1px solid #3e3e42;
+            background: #2d2d30;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .message-input {
+            flex: 1;
+            min-height: 50px;
+            max-height: 150px;
+            background: #3c3c3c;
+            color: #d4d4d4;
+            border: 1px solid #5a5a5a;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: none;
+            font-family: inherit;
+        }
+
+        .send-button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background: #005a9e;
+        }
+
+        .send-button:disabled {
+            background: #5a5a5a;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            color: #888;
+            font-style: italic;
+            padding: 8px 16px;
+        }
+
+        .error-message {
+            background: #f14c4c;
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 20px;
+        }
+
+        .api-key-setup {
+            background: #3c3c3c;
+            padding: 15px;
+            margin: 10px 20px;
+            border-radius: 6px;
+            border: 1px solid #5a5a5a;
+        }
+
+        .api-key-setup h4 {
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+
+        .api-key-input {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .save-key-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .quick-actions {
+            padding: 15px 20px;
+            background: #2d2d30;
+            border-bottom: 1px solid #3e3e42;
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .quick-actions h4 {
+            margin-bottom: 10px;
+            color: #ffffff;
+            font-size: 13px;
+            position: sticky;
+            top: 0;
+            background: #2d2d30;
+            padding-bottom: 5px;
+            z-index: 1;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-bottom: 10px;
+        }
+
+        .action-btn {
+            background: #404040;
+            color: #d4d4d4;
+            border: 1px solid #5a5a5a;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            text-align: left;
+            transition: background-color 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #4a4a4a;
+        }
+
+        .scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollbar::-webkit-scrollbar-track {
+            background: #2d2d30;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb {
+            background: #5a5a5a;
+            border-radius: 4px;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6a6a6a;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #28a745;
+        }
+
+        .status-offline {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <span class="status-indicator" id="serverStatus"></span>
+            AI Code Assistant
+        </h1>
+        <div class="model-controls">
+            <label for="providerSelect">Provider:</label>
+            <select id="providerSelect">
+                <option value="openai">OpenAI</option>
+                <option value="claude">Claude</option>
+            </select>
+            
+            <label for="modelSelect">Model:</label>
+            <select id="modelSelect">
+                <option value="">Loading...</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="api-key-setup">
+                <h4>API Configuration</h4>
+                <input type="password" id="openaiKey" class="api-key-input" placeholder="OpenAI API Key (optional)">
+                <input type="password" id="anthropicKey" class="api-key-input" placeholder="Anthropic API Key (optional)">
+                <button class="save-key-btn" onclick="aiAssistant.saveApiKeys()">Save Keys</button>
+                <p class="help-text">
+                    Only provide keys for the AI providers you want to use.
+                </p>
+            </div>
+
+            <div class="code-input-section">
+                <h3>Code Context</h3>
+                <textarea id="codeInput" placeholder="Paste your code here for context..."></textarea>
+                <div class="language-selector">
+                    <select id="languageSelect">
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                        <option value="csharp">C#</option>
+                        <option value="cpp">C++</option>
+                        <option value="typescript">TypeScript</option>
+                        <option value="go">Go</option>
+                        <option value="rust">Rust</option>
+                        <option value="php">PHP</option>
+                        <option value="ruby">Ruby</option>
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                        <option value="sql">SQL</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="quick-actions scrollbar">
+                <h4>Quick Actions</h4>
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="aiAssistant.quickAction('explain')">🔍 Explain Code</button>
+                    <button class="action-btn" onclick="aiAssistant.quickAction('optimize')">⚡ Optimize Code</button>
+                    <button class="action-btn" onclick="aiAssistant.quickAction('debug')">🐛 Debug Code</button>
+                    <button class="action-btn" onclick="aiAssistant.quickAction('comment')">📝 Add Comments</button>
+                    <button class="action-btn" onclick="aiAssistant.quickAction('test')">🧪 Write Tests</button>
+                    <button class="action-btn" onclick="aiAssistant.quickAction('refactor')">🔄 Refactor</button>
+                    <button class="action-btn" onclick="aiAssistant.quickAction('security')">🔒 Security Review</button>
+                    <button class="action-btn" onclick="aiAssistant.quickAction('performance')">🚀 Performance Analysis</button>
+                    <button class="action-btn" onclick="aiAssistant.quickAction('docs')">📚 Generate Documentation</button>
+                    <button class="action-btn" onclick="aiAssistant.quickAction('convert')">🔄 Convert Language</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="messages scrollbar" id="messages"></div>
+            
+            <div class="input-area">
+                <div class="input-container">
+                    <textarea 
+                        id="messageInput" 
+                        class="message-input" 
+                        placeholder="Ask about your code, request improvements, or get help..."
+                        rows="2"
+                    ></textarea>
+                    <button id="sendButton" class="send-button" onclick="aiAssistant.sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // AI Assistant - Complete Proxy-Only Implementation
+        class AIAssistant {
+            constructor() {
+                this.baseUrl = window.location.origin;
+                this.currentProvider = 'openai';
+                this.currentModel = '';
+                this.isStreaming = false;
+                this.currentAssistantMessageId = null;
+                
+                this.initializeUI();
+                this.checkServerHealth();
+                this.updateModelOptions();
+            }
+
+            // Server Health Check
+            async checkServerHealth() {
+                const statusIndicator = document.getElementById('serverStatus');
+                
+                try {
+                    const response = await fetch(`${this.baseUrl}/api/health`);
+                    if (response.ok) {
+                        statusIndicator.className = 'status-indicator status-online';
+                        this.showMessage('✅ Connected to proxy server successfully!', 'system');
+                    } else {
+                        throw new Error('Server responded with error');
+                    }
+                } catch (error) {
+                    statusIndicator.className = 'status-indicator status-offline';
+                    this.showError('❌ Cannot connect to proxy server. Make sure the Node.js server is running.');
+                }
+            }
+
+            // UI Initialization
+            initializeUI() {
+                document.getElementById('providerSelect').onchange = () => this.switchProvider();
+                document.getElementById('modelSelect').onchange = () => this.switchModel();
+                document.getElementById('messageInput').onkeydown = (e) => this.handleKeyPress(e);
+                
+                // Auto-resize textarea
+                const messageInput = document.getElementById('messageInput');
+                messageInput.oninput = () => {
+                    messageInput.style.height = 'auto';
+                    messageInput.style.height = Math.min(messageInput.scrollHeight, 150) + 'px';
+                };
+            }
+
+            // Provider and Model Management
+            switchProvider() {
+                this.currentProvider = document.getElementById('providerSelect').value;
+                this.updateModelOptions();
+            }
+
+            switchModel() {
+                this.currentModel = document.getElementById('modelSelect').value;
+            }
+
+            updateModelOptions() {
+                const modelSelect = document.getElementById('modelSelect');
+                const models = this.getModelsForProvider(this.currentProvider);
+                
+                modelSelect.innerHTML = '';
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.value;
+                    option.textContent = model.label;
+                    modelSelect.appendChild(option);
+                });
+                
+                this.currentModel = models[0]?.value || '';
+            }
+
+            getModelsForProvider(provider) {
+                const modelMap = {
+                    claude: [
+                        { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (Latest)' },
+                        { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
+                        { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+                        { value: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet' },
+                        { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' }
+                    ],
+                    openai: [
+                        { value: 'gpt-4o', label: 'GPT-4o' },
+                        { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+                        { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+                        { value: 'gpt-4', label: 'GPT-4' },
+                        { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' }
+                    ]
+                };
+                return modelMap[provider] || [];
+            }
+
+            // API Key Management
+            async saveApiKeys() {
+                const openaiKey = document.getElementById('openaiKey').value.trim();
+                const claudeKey = document.getElementById('anthropicKey').value.trim();
+                
+                if (!openaiKey && !claudeKey) {
+                    this.showError('Please provide at least one API key.');
+                    return;
+                }
+
+                let savedCount = 0;
+                const errors = [];
+
+                // Process OpenAI key
+                if (openaiKey) {
+                    try {
+                        this.showMessage('Validating OpenAI API key...', 'system');
+                        const success = await this.validateAndSaveKey('openai', openaiKey);
+                        if (success) {
+                            savedCount++;
+                            this.showMessage('✅ OpenAI API key validated and saved!', 'system');
+                        } else {
+                            errors.push('OpenAI: Invalid API key');
+                        }
+                    } catch (error) {
+                        errors.push(`OpenAI: ${error.message}`);
+                    }
+                }
+
+                // Process Claude key
+                if (claudeKey) {
+                    try {
+                        this.showMessage('Validating Claude API key...', 'system');
+                        const success = await this.validateAndSaveKey('claude', claudeKey);
+                        if (success) {
+                            savedCount++;
+                            this.showMessage('✅ Claude API key validated and saved!', 'system');
+                        } else {
+                            errors.push('Claude: Invalid API key');
+                        }
+                    } catch (error) {
+                        errors.push(`Claude: ${error.message}`);
+                    }
+                }
+
+                // Show results
+                if (savedCount > 0) {
+                    this.showMessage(`🎉 Successfully saved ${savedCount} API key(s)!`, 'system');
+                    // Clear inputs for security
+                    document.getElementById('openaiKey').value = '';
+                    document.getElementById('anthropicKey').value = '';
+                }
+
+                errors.forEach(error => this.showError(error));
+            }
+
+            async validateAndSaveKey(provider, apiKey) {
+                // Validate key
+                const validateResponse = await fetch(`${this.baseUrl}/api/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, apiKey })
+                });
+
+                if (!validateResponse.ok) {
+                    throw new Error(`Validation failed: ${validateResponse.statusText}`);
+                }
+
+                const validateData = await validateResponse.json();
+                if (!validateData.valid) {
+                    return false;
+                }
+
+                // Save key
+                const saveResponse = await fetch(`${this.baseUrl}/api/keys`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, apiKey })
+                });
+
+                if (!saveResponse.ok) {
+                    const error = await saveResponse.json();
+                    throw new Error(error.error || 'Failed to save key');
+                }
+
+                return true;
+            }
+
+            // Chat Functionality
+            async sendMessage(message = null) {
+                if (this.isStreaming) return;
+
+                const messageInput = document.getElementById('messageInput');
+                const userMessage = message || messageInput.value.trim();
+
+                if (!userMessage) return;
+
+                // Clear input and show user message
+                if (!message) messageInput.value = '';
+                this.showMessage(userMessage, 'user');
+
+                // Prepare context and messages
+                const codeContext = this.getCodeContext();
+                const fullMessage = this.buildPrompt(userMessage, codeContext);
+                const messages = [{ role: 'user', content: fullMessage }];
+
+                try {
+                    this.isStreaming = true;
+                    document.getElementById('sendButton').disabled = true;
+
+                    // Start assistant message
+                    this.currentAssistantMessageId = this.startAssistantMessage();
+
+                    // Send request to proxy
+                    const response = await fetch(`${this.baseUrl}/api/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            provider: this.currentProvider,
+                            model: this.currentModel,
+                            messages: messages,
+                            stream: true
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json().catch(() => ({ error: `Server error: ${response.status}` }));
+                        throw new Error(error.error || `Request failed: ${response.status}`);
+                    }
+
+                    // Handle streaming response
+                    await this.handleStreamResponse(response);
+
+                } catch (error) {
+                    this.showError(`Error: ${error.message}`);
+                    if (this.currentAssistantMessageId) {
+                        this.finishAssistantMessage();
+                    }
+                } finally {
+                    this.isStreaming = false;
+                    document.getElementById('sendButton').disabled = false;
+                    this.currentAssistantMessageId = null;
+                }
+            }
+
+            async handleStreamResponse(response) {
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || '';
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const data = line.slice(6);
+                                if (data === '[DONE]') {
+                                    this.finishAssistantMessage();
+                                    return;
+                                }
+
+                                try {
+                                    const parsed = JSON.parse(data);
+                                    if (parsed.error) {
+                                        throw new Error(parsed.error);
+                                    }
+                                    if (parsed.content && !parsed.finished) {
+                                        this.updateAssistantMessage(parsed.content);
+                                    }
+                                } catch (e) {
+                                    if (e.message !== 'Unexpected end of JSON input') {
+                                        console.error('Stream parsing error:', e);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } finally {
+                    reader.releaseLock();
+                    this.finishAssistantMessage();
+                }
+            }
+
+            // Helper Functions
+            getCodeContext() {
+                const codeInput = document.getElementById('codeInput').value.trim();
+                const language = document.getElementById('languageSelect').value;
+
+                if (!codeInput) return null;
+
+                return { code: codeInput, language: language };
+            }
+
+            buildPrompt(userMessage, codeContext) {
+                if (!codeContext) return userMessage;
+
+                return `I have some ${codeContext.language} code that I'd like help with:
+
+\`\`\`${codeContext.language}
+${codeContext.code}
+\`\`\`
+
+${userMessage}`;
+            }
+
+            handleKeyPress(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            }
+
+            // Quick Actions
+            quickAction(action) {
+                const codeContext = this.getCodeContext();
+                if (!codeContext) {
+                    this.showError('Please provide some code in the Code Context area first.');
+                    return;
+                }
+
+                const actions = {
+                    explain: 'Please explain what this code does, how it works, and any important details.',
+                    optimize: 'Please analyze this code and suggest optimizations for better performance, readability, or efficiency.',
+                    debug: 'Please help me debug this code. Look for potential bugs, errors, or issues.',
+                    comment: 'Please add helpful comments to this code to explain what each part does.',
+                    test: 'Please write comprehensive unit tests for this code.',
+                    refactor: 'Please refactor this code to improve its structure, readability, and maintainability.',
+                    security: 'Please review this code for security vulnerabilities and suggest improvements.',
+                    performance: 'Please analyze this code for performance bottlenecks and optimization opportunities.',
+                    docs: 'Please generate comprehensive documentation for this code.',
+                    convert: 'Please help me convert this code to a different programming language.'
+                };
+
+                const prompt = actions[action];
+                if (prompt) {
+                    this.sendMessage(prompt);
+                }
+            }
+
+            // Message Display Functions
+            showMessage(content, role) {
+                const messagesContainer = document.getElementById('messages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${role}`;
+                messageDiv.innerHTML = this.formatMessage(content);
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                return `msg-${Date.now()}`;
+            }
+
+            showError(message) {
+                const messagesContainer = document.getElementById('messages');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = message;
+                messagesContainer.appendChild(errorDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            startAssistantMessage() {
+                const messagesContainer = document.getElementById('messages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message assistant';
+                messageDiv.innerHTML = '<span class="typing-indicator">Thinking...</span>';
+
+                const messageId = `msg-${Date.now()}`;
+                messageDiv.id = messageId;
+                messageDiv.setAttribute('data-content', '');
+
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                return messageId;
+            }
+
+            updateAssistantMessage(content) {
+                if (!this.currentAssistantMessageId) return;
+
+                const messageDiv = document.getElementById(this.currentAssistantMessageId);
+                if (messageDiv) {
+                    // Initialize content if it's the first update
+                    if (messageDiv.innerHTML.includes('Thinking...')) {
+                        messageDiv.setAttribute('data-content', '');
+                    }
+
+                    // Append new content
+                    const currentContent = messageDiv.getAttribute('data-content') || '';
+                    const newContent = currentContent + content;
+                    messageDiv.setAttribute('data-content', newContent);
+                    messageDiv.innerHTML = this.formatMessage(newContent);
+
+                    // Scroll to bottom
+                    const messagesContainer = document.getElementById('messages');
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+            }
+
+            finishAssistantMessage() {
+                if (!this.currentAssistantMessageId) return;
+
+                const messageDiv = document.getElementById(this.currentAssistantMessageId);
+                if (messageDiv) {
+                    const content = messageDiv.getAttribute('data-content') || '';
+                    messageDiv.innerHTML = this.formatMessage(content);
+                }
+            }
+
+            formatMessage(content) {
+                // Handle code blocks
+                let formatted = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+                    const language = lang || 'text';
+                    return `<pre><code class="language-${language}">${this.escapeHtml(code)}</code></pre>`;
+                });
+
+                // Handle inline code
+                formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+                // Handle line breaks
+                formatted = formatted.replace(/\n/g, '<br>');
+
+                return formatted;
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Global instance
+        let aiAssistant;
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', () => {
+            aiAssistant = new AIAssistant();
+
+            // Show welcome message
+            const welcomeMessage = `Welcome to AI Code Assistant! 👋
+
+To get started:
+1. Set your API keys in the sidebar
+2. Paste code in the Code Context area (optional)  
+3. Ask questions or use Quick Actions
+
+I can help you explain code, debug issues, write tests, optimize performance, and much more!
+
+🔧 Running via proxy server - no CORS issues!`;
+
+            aiAssistant.showMessage(welcomeMessage, 'system');
+        });
+
+        // Handle connection issues
+        window.addEventListener('error', (e) => {
+            if (e.message.includes('fetch')) {
+                console.error('Network error - check if proxy server is running');
+            }
+        });
+
+        console.log('✅ AI Assistant loaded - using proxy server for all API calls');
+    </script>
+</body>
+</html>
